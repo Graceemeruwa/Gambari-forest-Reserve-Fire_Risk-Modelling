@@ -1,68 +1,117 @@
-# Gambari Forest Reserve Fire-Risk Analysis: A Reproducible Study
+# Gambari Forest Reserve Fire-Risk Modelling
 
-This repository presents a comprehensive and fully reproducible analysis of fire-risk within the Gambari Forest Reserve. The study integrates various geospatial and climatic datasets to characterize the fire regime, assess climate-fire relationships, validate existing risk maps, and develop data-driven predictive models. All analyses are performed within a Google Colab notebook, designed for end-to-end execution and transparent reproduction of results.
+Data and analysis code for a multi-model remote-sensing assessment of fire risk in Gambari Forest Reserve, Oyo State, Nigeria (17,164 ha). The repository reproduces every table and figure in the associated manuscript and its supplementary materials from a single Python notebook.
 
-## 1. Introduction and Background
+## Overview
 
-Forest fires pose a significant threat to biodiversity, ecosystem services, and human livelihoods globally. Effective fire management strategies rely on accurate assessments of fire risk, which in turn require a deep understanding of historical fire regimes and the underlying environmental drivers. The Gambari Forest Reserve, like many tropical forest ecosystems, is vulnerable to fire events, necessitating robust analytical approaches to inform conservation and management efforts.
+Spatially explicit fire-risk maps for tropical forest reserves are commonly produced with the Analytic Hierarchy Process (AHP) using climate criteria drawn from coarse-resolution reanalysis products. This project examines two methodological problems for single-reserve applications in West Africa — whether such climate criteria carry any genuine within-reserve spatial information, and how strongly cross-validated model performance depends on pseudo-absence design — and sets a literature-weighted AHP map against four data-driven model classes and an empirically-weighted comparator.
 
-This research aims to provide an in-depth characterization of the fire regime in Gambari Forest Reserve, evaluate the efficacy of existing Analytical Hierarchy Process (AHP) based fire-risk maps, and explore the potential of data-driven modeling techniques for improved fire-risk prediction. The study emphasizes transparency and reproducibility, offering a complete computational workflow implemented in a Google Colab environment.
+The analysis covers:
 
-## 2. Data Sources and Pre-processing
+- **Fire-regime characterisation** from 568 MODIS active-fire detections (2001–2025): trend, seasonality, fire radiative power, and spatial point-pattern statistics (Clark–Evans, Ripley's K/L).
+- **Climate–fire temporal coupling** via quasi-Poisson regression of annual fire counts on annual climate.
+- **AHP fire-risk mapping** from ten criteria, with lift and AUC validation, a weight-scheme sensitivity analysis, and an empirically-weighted ordinal comparator.
+- **Data-driven modelling** (logistic regression, random forest, gradient boosting, MaxEnt-style L1-penalised logistic) with a systematic pseudo-absence sensitivity grid and spatial-block cross-validation.
+- **A diagnostic** of the within-reserve information content of resampled climate criterion rasters.
+- **Stakeholder perceptions** from a structured questionnaire (n = 55).
 
-The analysis utilizes a diverse array of spatially explicit and temporal datasets:
+## Associated publication
 
-*   **Fire Points**: MODIS (Moderate Resolution Imaging Spectroradiometer) active fire detections (M-C61) providing locations, acquisition dates, Fire Radiative Power (FRP), and confidence levels from 2001 to 2025.
-*   **Geospatial Predictors**: Raster layers representing key environmental factors, including:
-    *   **Vegetation Indices**: NDVI (Normalized Difference Vegetation Index) for 2005, 2015, and 2025.
-    *   **Land Surface Temperature (LST)**: Annual averages for 2005, 2015, and 2025.
-    *   **Topographic Variables**: Slope, Aspect, and Elevation derived from Digital Elevation Models.
-    *   **Proximity Measures**: Distance to human settlements (Place), Roads, and Water bodies.
-    *   **Land Use/Land Cover (LULC)**: Categorical map for 2025.
-*   **AHP Fire-Risk Map**: A pre-existing 64-meter resolution AHP fire-risk raster for the study area.
-*   **Climatic Data**: Annual aggregates of Precipitation, Relative Humidity (RH), and Surface Temperature (NASA POWER, 2000-2025).
-*   **Stakeholder Questionnaire**: Survey responses detailing local perceptions of fire causes, impacts, and management challenges.
+> Oyebode, S. H., Emeruwa, A. O., Akintunde-Alo, D. A. *Multi-Model Fire-Risk Mapping in a Fuel-Limited Tropical Forest Reserve: A Remote-Sensing Assessment of Gambari Forest Reserve, Nigeria.* (Under review.)
 
-All geospatial data are reprojected to UTM Zone 31N (EPSG:32631) for consistent spatial analysis. Fire points are sampled against all raster layers to create a comprehensive fire-predictor dataframe.
+DOI to be added on acceptance.
 
-## 3. Methodology
+## Repository structure
 
-The analysis proceeds through several key stages:
+```
+.
+├── gambari_reproducibility_clean.ipynb   # end-to-end analysis notebook
+├── README.md
+├── LICENSE
+├── data/                                 # input layers (see Data below)
+│   ├── reserve_boundary/                 # reserve polygon (WGS84)
+│   ├── fires/                            # MODIS active-fire detections (shapefile + DBF)
+│   ├── AHP_Fire_Risk_Map/               # literature-weight AHP raster (Fire_Risk.tif)
+│   ├── rasters/                          # criterion rasters (NDVI, LST, terrain, distance, climate)
+│   ├── lulc/                            # land-use / land-cover raster
+│   ├── climate/                         # annual NASA POWER series (CSV)
+│   └── questionnaire/                   # de-identified questionnaire responses (CSV)
+└── outputs/                             # generated by the notebook
+    ├── tables/                          # result tables (CSV) + run_log.txt + key_scalars.csv
+    └── figures/                         # result figures (PNG/PDF/SVG)
+```
 
-1.  **Fire Regime Characterization**: Descriptive statistics of fire counts, seasonality, FRP distribution, and detection confidence. Spatial clustering is assessed using the Clark-Evans R statistic. Linear and Mann-Kendall trend tests are applied to annual fire counts.
-2.  **Climate-Fire Temporal Coupling**: Quasi-Poisson regression models are used to investigate the relationship between annual fire counts and climatic variables (precipitation, relative humidity, temperature), including lagged effects of precipitation.
-3.  **Climate-Raster Diagnostic**: Examination of pixel value distributions for climatic rasters to identify potential interpolation artifacts or lack of spatial variability at the reserve scale.
-4.  **AHP Map Validation**: The existing AHP fire-risk map is validated against historical fire locations. Performance metrics include class-level percent-area, percent-fire, lift, Chi-square goodness-of-fit, and Area Under the Receiver Operating Characteristic Curve (AUC).
-5.  **Data-Driven Model Comparison**: Four machine learning models—Logistic Regression, Random Forest, Gradient Boosting, and MaxEnt (implemented as L1-penalized logistic regression with hinge features)—are developed using a presence-absence dataset. Model performance is evaluated using in-sample AUC, random k-fold cross-validation, and spatial-block cross-validation.
-6.  **Pseudo-Absence Sensitivity Analysis**: The impact of pseudo-absence generation strategy (absence:presence ratio and spatial exclusion radius) on logistic regression performance is systematically investigated.
-7.  **Predictor Correlation and VIF Analysis**: Assessment of multicollinearity among continuous predictors using correlation matrices and Variance Inflation Factors (VIF).
-8.  **Stratified Logistic Regression**: Logistic regression models are fitted separately for 'edge' and 'interior' zones (stratified by median distance to roads) to explore spatial heterogeneity in predictor effects.
-9.  **High-Confidence Detection Subset Analysis**: The AHP and data-driven model validations are repeated using only high-confidence MODIS fire detections (≥ 80%) to assess robustness.
-10. **Moran's I on Residuals**: Spatial autocorrelation in logistic regression residuals is tested using Moran's I to determine if spatial patterns remain unexplained by the models.
-11. **AHP Weight Sensitivity**: The AHP risk surface is reconstructed under various weighting schemes (original, climate-halved, climate-zeroed, equal) and re-validated to understand the impact of criterion weights on performance.
-12. **Stakeholder Perception Summary**: Analysis of questionnaire responses to summarize local perspectives on fire causes, benefits, impacts, and management challenges.
+The notebook reads inputs from a single `ROOT` directory and writes everything to an `OUT_DIR`. Both are set at the top of the notebook (Section A1); adjust them to match your local or Google Drive layout.
 
-## 4. Key Findings and Implications
+## Data
 
-This research provides critical insights into fire dynamics and risk assessment in the Gambari Forest Reserve. Key findings include:
+| Layer | Description | Source |
+|---|---|---|
+| MODIS active-fire detections | MOD14/MYD14 Collection 6.1, 2001–2025, clipped to the reserve | NASA FIRMS |
+| Reserve boundary | Polygon of Gambari Forest Reserve (17,164 ha) | Oyo State Forestry Department |
+| Criterion rasters | NDVI and LST (2005/2015/2025), slope, aspect, elevation, distance to settlements/roads/water | Landsat 5/7/8, SRTM 30 m, digitised vectors |
+| Climate rasters and series | Humidity, precipitation, surface temperature | NASA POWER (0.5°) |
+| AHP risk surface | Literature-weight AHP map (`Fire_Risk.tif`) | Produced in ArcGIS |
+| Land-use / land-cover | Five-class supervised classification at 64 m | Landsat-8 composite (2025) |
+| Questionnaire | 55 de-identified stakeholder responses | Field survey (2026) |
 
-*   **Fire Regime Trends**: [Summarize 1-2 most important findings from §6, e.g., increasing/decreasing trend, strong seasonality, typical FRP values].
-*   **Climate Influence**: [Summarize 1-2 most important findings from §7, e.g., significant climatic drivers, lagged effects].
-*   **AHP Map Performance**: The AHP-derived fire-risk map generally exhibited [e.g., poor discriminatory power, unexpected lift inversion in high-risk classes], particularly with high-confidence fire detections, suggesting limitations in its predictive capacity or parameterization for this specific context.
-*   **Data-Driven Model Efficacy**: Data-driven models, especially [e.g., Random Forest/Gradient Boosting], demonstrated [e.g., higher predictive accuracy, more consistent performance] compared to the AHP map, particularly when appropriate pseudo-absence generation strategies were employed.
-*   **Pseudo-Absence Importance**: The sensitivity analysis highlighted the crucial role of pseudo-absence sampling, particularly the spatial exclusion radius, in influencing model performance metrics like AUC. This suggests that the definition of 'non-fire' areas significantly impacts model evaluation and development.
-*   **Spatial Autocorrelation**: Moran's I analysis indicated [e.g., no significant residual spatial autocorrelation, suggesting that the chosen predictors adequately capture the spatial structure of fire occurrence].
-*   **Stakeholder Perspectives**: [Summarize 1-2 key insights from §18, e.g., alignment/divergence between scientific findings and local perceptions, dominant perceived causes/impacts].
+Source products (MODIS FIRMS, Landsat, SRTM, NASA POWER) are publicly available from their respective providers. Redistributed layers in this repository are clipped to the reserve extent for reproducibility.
 
-The findings underscore the importance of integrating empirical fire data with advanced modeling techniques for robust fire-risk assessment. They also suggest that while expert knowledge (as in AHP) is valuable, its translation into spatially explicit risk maps requires rigorous validation and may benefit from calibration with observed fire patterns and local ecological conditions.
+## Requirements
 
-## 5. Notebook Structure and Reproducibility
+- Python 3.10+
+- `numpy`, `pandas`, `scipy`, `scikit-learn`, `statsmodels`, `matplotlib`, `rasterio`, `geopandas`
 
-The accompanying Google Colab notebook (`Gambari_Fire_Risk_Analysis.ipynb`) is structured into logical sections corresponding to the methodology described above. Each section is introduced by a markdown cell and followed by Python code cells that perform the analysis.
+Install with:
 
-**To reproduce this analysis:**
+```bash
+pip install numpy pandas scipy scikit-learn statsmodels matplotlib rasterio geopandas
+```
 
-1.  **Clone this repository** or download the notebook.
-2.  **Upload the project data archive** (e.g., `Gambari.zip`) to your Google Colab session, or mount your Google Drive and navigate to the project folder containing the data as described in the notebook's "Data location" section.
-3.  **Run the notebook cells sequentially** from top to bottom. The notebook includes checks for required libraries and data paths to ensure a smooth execution.
-4.  All generated figures and tables are saved to the `/content/output/` directory within the Colab environment (or a custom `OUT_DIR` if specified), including a `summary.json` file containing headline statistics.
+## Usage
+
+**Google Colab (recommended).** Open `gambari_reproducibility_clean.ipynb` in Colab. The first cell mounts Google Drive; place the `data/` directory under `MyDrive/Gambari` (or edit `ROOT`), then run all cells.
+
+**Local.** Set `GAMBARI_ROOT` (input directory) and, optionally, `GAMBARI_OUT` (output directory) as environment variables, or edit the paths in Section A1, then run the notebook top to bottom:
+
+```bash
+export GAMBARI_ROOT=./data
+export GAMBARI_OUT=./outputs
+jupyter nbconvert --to notebook --execute gambari_reproducibility_clean.ipynb
+```
+
+The notebook runs in roughly 5–10 minutes on a standard CPU; the pseudo-absence sensitivity grid and the cross-validation loops are the most time-consuming steps.
+
+## Outputs
+
+Running the notebook writes all tables (CSV) and figures (PNG/PDF) to `OUT_DIR`, mirrors the console output to `run_log.txt`, and consolidates the headline statistics cited in the text into `key_scalars.csv`.
+
+**Tables:** descriptive statistics (Table 1), AHP weights (Table 2), model performance (Table 3), and supplementary Tables S1–S10 (pseudo-absence sensitivity, Ripley's L, variance inflation factors, stratified coefficients, weight-scheme sensitivity, empirical-weight comparator, pairwise weights, demographics, quasi-Poisson, logistic coefficients).
+
+**Figures:** experimental design (Figure 1), fire regime (Figure 3), climate–fire coupling (Figure 4), climate diagnostic (Figure 5), AHP map and lift (Figure 6), data-driven surface (Figure 7), ROC curves (Figure 8), stakeholder perceptions (Figure 9), and supplementary Figures S1–S7. The study-area map (Figure 2) is prepared separately in a GIS and is not generated by the notebook.
+
+## Reproducibility
+
+A fixed random seed is set for pseudo-absence sampling, cross-validation splits, and Monte Carlo simulations, so the notebook reproduces the reported values deterministically. The class-4 (cleared / recently-burned) land-use class is excluded from the analytical sample throughout. Every quantitative result in the manuscript and supplement traces to a cell in the notebook and a row in the output tables.
+
+## Citation
+
+If you use this repository, please cite both the associated article and this deposit:
+
+```
+Oyebode, S. H., Emeruwa, A. O., Akintunde-Alo, D. A. Multi-Model Fire-Risk Mapping in a
+Fuel-Limited Tropical Forest Reserve: A Remote-Sensing Assessment of Gambari Forest Reserve,
+Nigeria. [Journal], [Year]. [DOI]
+```
+
+## License
+
+Released under the [MIT License](LICENSE) for the code; input data layers are redistributed under the terms of their original providers. See `LICENSE` for details.
+
+## Acknowledgements
+
+MODIS active-fire data were provided by NASA's FIRMS / LANCE; climate data by the NASA POWER project; and Landsat data are courtesy of the U.S. Geological Survey. We thank the Oyo State Forestry Department for site access and the questionnaire respondents for their participation.
+
+## Contact
+
+Correspondence: Abiodun Emeruwa, University of Ibadan- akolawole796@stu.ui.edu.ng
